@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
@@ -237,6 +238,45 @@ namespace Microsoft.Maui.DeviceTests
 				// without crashing, then we're good.
 
 				await AttachAndRun(root, (handler) => { });
+			});
+		}
+
+		[Fact]
+		[Category(TestCategory.Button, TestCategory.FlexLayout)]
+		public async Task ButtonWithImageInFlexLayoutInGridDoesNotCycle()
+		{
+			await ButtonWithImageInFlexLayoutInGridDoesNotCycleCore();
+			// Cycle does not occur on first run
+			await ButtonWithImageInFlexLayoutInGridDoesNotCycleCore();
+		}
+
+		async Task ButtonWithImageInFlexLayoutInGridDoesNotCycleCore()
+		{
+			var grid = new Grid() { MaximumWidthRequest = 150 };
+			grid.AddRowDefinition(new RowDefinition(GridLength.Auto));
+
+			var flexLayout = new FlexLayout() { Wrap = Layouts.FlexWrap.Wrap };
+			grid.Add(flexLayout);
+
+			var buttons = new List<Button>();
+			for (int i = 0; i < 2; i++)
+			{
+				var button = new Button { ImageSource = "black.png" };
+				buttons.Add(button);
+				flexLayout.Add(button);
+			}
+
+			await InvokeOnMainThreadAsync(async () =>
+			{
+				foreach (var button in buttons)
+					await CreateHandlerAsync<ButtonHandler>(button);
+				var flexLayoutHandler = await CreateHandlerAsync<LayoutHandler>(flexLayout);
+				var layoutHandler = await CreateHandlerAsync<LayoutHandler>(grid);
+
+				// If this can be attached to the hierarchy and make it through a layout
+				// without crashing, then we're good.
+
+				await AttachAndRun(grid, (handler) => { });
 			});
 		}
 
